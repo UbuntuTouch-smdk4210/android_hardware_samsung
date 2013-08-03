@@ -86,7 +86,7 @@ namespace android {
 #define PRINTBUF_SIZE 8096
 
 // Enable RILC log
-#define RILC_LOG 0
+#define RILC_LOG 1
 
 #if RILC_LOG
     #define startRequest           sprintf(printBuf, "(")
@@ -2181,7 +2181,6 @@ static void rilEventAddWakeup(struct ril_event *ev) {
 
 static void sendSimStatusAppInfo(Parcel &p, int num_apps, RIL_AppStatus appStatus[]) {
         p.writeInt32(num_apps);
-        startResponse;
         for (int i = 0; i < num_apps; i++) {
             p.writeInt32(appStatus[i].app_type);
             p.writeInt32(appStatus[i].app_state);
@@ -2204,7 +2203,6 @@ static void sendSimStatusAppInfo(Parcel &p, int num_apps, RIL_AppStatus appStatu
                     appStatus[i].pin1,
                     appStatus[i].pin2);
         }
-        closeResponse;
 }
 
 static int responseSimStatus(Parcel &p, void *response, size_t responselen) {
@@ -2223,7 +2221,19 @@ static int responseSimStatus(Parcel &p, void *response, size_t responselen) {
         p.writeInt32(p_cur->cdma_subscription_app_index);
         p.writeInt32(p_cur->ims_subscription_app_index);
 
+        startResponse;
+
+        appendPrintBuf("%s card_state=%d,universal_pin_state=%d,gsm_umts_index=%d,cdma_index=%d,ims_index=%d, ",
+                       printBuf,
+                       p_cur->card_state,
+                       p_cur->universal_pin_state,
+                       p_cur->gsm_umts_subscription_app_index,
+                       p_cur->cdma_subscription_app_index,
+                       p_cur->ims_subscription_app_index);
+
         sendSimStatusAppInfo(p, p_cur->num_applications, p_cur->applications);
+
+        closeResponse;
     } else if (responselen == sizeof (RIL_CardStatus_v5)) {
         ALOGE("RIL_CardStatus_v5");
         RIL_CardStatus_v5 *p_cur = ((RIL_CardStatus_v5 *) response);
@@ -2234,7 +2244,18 @@ static int responseSimStatus(Parcel &p, void *response, size_t responselen) {
         p.writeInt32(p_cur->cdma_subscription_app_index);
         p.writeInt32(-1);
 
+        startResponse;
+
+        appendPrintBuf("%s card_state=%d,universal_pin_state=%d,gsm_umts_index=%d,cdma_index=%d, ",
+                       printBuf,
+                       p_cur->card_state,
+                       p_cur->universal_pin_state,
+                       p_cur->gsm_umts_subscription_app_index,
+                       p_cur->cdma_subscription_app_index);
+
         sendSimStatusAppInfo(p, p_cur->num_applications, p_cur->applications);
+
+        closeResponse;
     } else {
         ALOGE("responseSimStatus: A RilCardStatus_v6 or _v5 expected\n");
         ALOGE("responselen=%d", responselen);
